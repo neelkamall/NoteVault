@@ -145,7 +145,7 @@ const logoutUser = asyncHandler(async(req, res) => {
 const refreshAccessToken = asyncHandler(async(req, res) => {
   const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
-  if (incomingRefreshToken){
+  if (!incomingRefreshToken){
     throw new ApiError(401, "unathorized request")
   }
 
@@ -186,11 +186,33 @@ const refreshAccessToken = asyncHandler(async(req, res) => {
   }
 
 })
+const changeCurrentPasword = asyncHandler(async(req, res)=>{
+  const {oldPassword, newPassword, confirmPassword} = req.body
 
+  if(!(newPassword === confirmPassword)){
+    throw new ApiError(400, "New Password is not match with Confirm Password")
+  }
+
+  const user = await User.findById(req.user?.id)
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+  if(!isPasswordCorrect){
+    throw new ApiError(400, "Invalid old password")
+  }
+
+  user.password = newPassword
+  await user.save({validationBeforeSave: false})
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, {}, "Password changed successfully"))
+
+})
 
 export {
   registerUser,
   loginUser,
   logoutUser,
   refreshAccessToken,
+  changeCurrentPasword,
 }
